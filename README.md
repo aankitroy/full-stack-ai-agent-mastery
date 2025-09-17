@@ -196,8 +196,8 @@ We believe in recognizing our contributors:
 
 - **GitHub Discussions** - Technical questions and ideas
 - **Discord Server** - Real-time chat and collaboration
-- **Twitter** - Updates and announcements [@YourHandle]
-- **LinkedIn** - Professional networking [Your LinkedIn]
+- **Twitter** - Updates and announcements [@AankitRoy]
+- **LinkedIn** - Professional networking [https://www.linkedin.com/in/aankit-roy-20515b35/]
 
 ### 📅 **Community Events**
 
