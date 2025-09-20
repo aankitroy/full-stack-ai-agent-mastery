@@ -1,0 +1,15 @@
+# YouTube Content Analyzer Agent Dependencies
+# ===============================================
+
+# Agno Framework (Recommended - includes YouTube tools)
+agno>=2.0.7
+
+# Alternative: Manual implementation
+youtube-transcript-api>=1.2.2
+openai>=1.3.0
+
+# Data Processing
+pydantic>=2.5.0
+
+# Utilities
+python-dotenv>=1.0.0
