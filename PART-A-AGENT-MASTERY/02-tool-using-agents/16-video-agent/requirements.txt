@@ -1,0 +1,8 @@
+# Video Downloader Agent Dependencies
+# ===================================
+
+# Video downloading (latest version to handle YouTube changes)
+yt-dlp>=2024.1.0
+
+# Alternative option
+# pytube>=15.0.0
