@@ -14,6 +14,9 @@ Usage:
 import argparse
 from agno.agent import Agent
 from agno.tools.youtube import YouTubeTools
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def create_youtube_agent():
