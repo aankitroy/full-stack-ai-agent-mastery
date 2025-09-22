@@ -13,7 +13,7 @@ This fundamentals section is designed as a **progressive learning journey**. Eac
 | Lesson | Topic                                                            | Duration | Complexity | Prerequisites |
 | ------ | ---------------------------------------------------------------- | -------- | ---------- | ------------- |
 | **01** | [What is an Agent?](./lesson-1-introduction/README.md)                    | 30 mins  | ⭐         | None          |
-| **02** | [Explore Agentic Frameworks](./02-explore-agentic-frameworks.md) | 45 mins  | ⭐⭐       | Lesson 01     |
+| **02** | [Explore Agentic Frameworks](./lesson-2-frameworks/README.md) | 45 mins  | ⭐⭐       | Lesson 01     |
 | **03** | [Agent Architectures](./03-agent-architectures.md)               | 60 mins  | ⭐⭐⭐     | Lessons 01-02 |
 | **04** | [Reasoning Patterns](./04-reasoning-patterns.md)                 | 45 mins  | ⭐⭐⭐     | Lessons 01-03 |
 | **05** | [Memory Systems](./05-memory-systems.md)                         | 60 mins  | ⭐⭐⭐⭐   | Lessons 01-04 |
