@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: 💬 GitHub Discussions
-    url: https://github.com/yourusername/full-stack-ai-agent-mastery/discussions
+    url: https://github.com/aankitroy/full-stack-ai-agent-mastery/discussions
     about: Ask questions, share ideas, and discuss the project with the community
   - name: 🎯 Discord Community
     url: https://discord.gg/your-discord
@@ -12,5 +12,3 @@ contact_links:
   - name: 🔒 Security Issues
     url: mailto:security@yourdomain.com
     about: Report security vulnerabilities privately
-
-
