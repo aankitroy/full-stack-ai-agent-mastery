@@ -4,10 +4,16 @@ YouTube Video Downloader Agent - Simplest Implementation
 =======================================================
 
 Minimal code to download MP4 videos from YouTube URLs using yt-dlp.
+Supports public, unlisted, and private videos (with authentication).
 
 Usage:
     python video_downloader_agent.py --url "https://www.youtube.com/watch?v=VIDEO_ID"
     python video_downloader_agent.py --url "https://www.youtube.com/watch?v=VIDEO_ID" --quality "720p"
+    
+Features:
+    - Works with unlisted videos using Android API client
+    - Automatic retry on failures
+    - Custom output directory support
 """
 
 import argparse
@@ -52,6 +58,12 @@ class VideoDownloaderAgent:
                 },
                 'extractor_retries': 3,  # Retry on extraction failures
                 'fragment_retries': 3,   # Retry on download failures
+                # Use Android client to fix unlisted videos and signature extraction issues
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['android', 'web'],  # Try Android API first, then web
+                    }
+                },
             }
             
             print("⏳ Downloading video...")
