@@ -22,33 +22,37 @@ After completing this lesson, you will be able to:
 #### The Paradigm Shift
 
 Traditional LLMs are limited by:
+
 - **Static knowledge**: Information frozen at training time
 - **No real-world interaction**: Cannot execute code or query databases
 - **Limited reasoning**: Purely text-based, no computational capabilities
 
 Tool-enabled agents overcome these limitations through:
+
 - **Dynamic information access**: Real-time data from APIs and databases
 - **Computational capabilities**: Execute code, perform calculations, run simulations
 - **Environmental interaction**: Modify state, trigger workflows, orchestrate systems
-
 
 ### Core Components of Tool-Enabled Systems
 
 AI agents with tool capabilities operate through four interconnected components:
 
 1. **Tool Registry**
+
    - Catalog of available tools with metadata
    - Function schemas defining inputs, outputs, and capabilities
    - Permission frameworks and access controls
    - Performance metrics and reliability scores
 
 2. **Tool Selection Mechanism**
+
    - Intent recognition from user requests
    - Context-aware tool matching
    - Parameter extraction and validation
    - Confidence scoring for tool appropriateness
 
 3. **Execution Engine**
+
    - Tool invocation with proper authentication
    - Parameter marshaling and validation
    - Error handling and retry logic
@@ -71,13 +75,12 @@ graph TD
     G --> H[Result Integration]
     H --> I[Agent Response]
     I --> J[User]
-    
+
     style A fill:#e1f5ff
     style J fill:#e1f5ff
     style F fill:#fff4e1
     style D fill:#f0f0f0
 ```
-
 
 ## 🏗️ Core Tool Usage Patterns
 
@@ -163,22 +166,24 @@ calculation is based on current market rates.
 #### When to Use ReAct
 
 **Ideal Scenarios**:
+
 - Multi-step research requiring information gathering
 - Complex problem-solving with external data dependencies
 - Situations requiring dynamic adaptation based on intermediate results
 - Tasks where reasoning transparency is important
 
 **Advantages**:
+
 - **Reduced hallucination**: External tools provide factual grounding
 - **Error correction**: Can observe results and adjust approach
 - **Transparent reasoning**: Explicit thought traces enable debugging
 - **Dynamic planning**: Adapts strategy based on observations
 
 **Limitations**:
+
 - **Higher LLM costs**: Multiple reasoning cycles increase token usage
 - **Slower execution**: Sequential thinking-acting cycles take time
 - **Termination challenges**: May loop indefinitely without proper stopping conditions
-
 
 ### Pattern 2: Planning-Based Tool Usage
 
@@ -281,22 +286,24 @@ FINAL OUTPUT: Executive Report delivered with all findings
 #### When to Use Planning
 
 **Ideal Scenarios**:
+
 - Complex multi-step workflows with clear dependencies
 - Tasks requiring specific execution order
 - Situations where upfront analysis improves efficiency
 - Projects needing progress tracking and checkpoints
 
 **Advantages**:
+
 - **Efficiency**: Fewer LLM calls compared to ReAct
 - **Predictability**: Clear execution path
 - **Parallelization**: Independent tasks can run concurrently
 - **Resumability**: Can recover from failures mid-execution
 
 **Limitations**:
+
 - **Rigidity**: Difficult to adapt if early steps fail
 - **Upfront cost**: Planning phase requires computation
 - **Unknown territories**: Less effective for exploratory tasks
-
 
 ### Pattern 3: Reflection with Tool Validation
 
@@ -405,37 +412,37 @@ from pathlib import Path
 def process_csv(filename: str) -> List[Dict[str, str]]:
     """
     Process CSV file and return list of dictionaries.
-    
+
     Args:
         filename: Path to CSV file
-        
+
     Returns:
         List of dictionaries representing CSV rows
-        
+
     Raises:
         FileNotFoundError: If file doesn't exist
         ValueError: If file is empty or invalid CSV
     """
     file_path = Path(filename)
-    
+
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {filename}")
-    
+
     if file_path.stat().st_size == 0:
         raise ValueError(f"File is empty: {filename}")
-    
+
     results = []
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 results.append(row)
-                
+
         if not results:
             raise ValueError("No data found in CSV")
-            
+
         return results
-        
+
     except csv.Error as e:
         raise ValueError(f"Invalid CSV format: {e}")
 
@@ -454,15 +461,19 @@ Ready for production ✓
 #### Tool-Augmented Reflection Strategies
 
 **1. Test-Driven Validation**
+
 - Generate code → Run unit tests → Fix failures → Repeat
 
 **2. External Fact-Checking**
+
 - Generate content → Verify against databases/APIs → Correct errors
 
 **3. Performance Benchmarking**
+
 - Generate solution → Benchmark performance → Optimize → Re-test
 
 **4. Multi-Criteria Assessment**
+
 - Evaluate across dimensions (correctness, security, performance)
 - Weight criteria by importance
 - Iterate on lowest-scoring aspects
@@ -470,22 +481,24 @@ Ready for production ✓
 #### When to Use Reflection with Tools
 
 **Ideal Scenarios**:
+
 - Code generation requiring correctness guarantees
 - Content creation needing factual accuracy
 - Solutions requiring performance optimization
 - Tasks with clear quality metrics
 
 **Advantages**:
+
 - **Higher quality**: Iterative improvement catches errors
 - **Objective validation**: Tools provide unbiased assessment
 - **Learning**: Patterns emerge from successful iterations
 - **Confidence**: Validated outputs increase reliability
 
 **Limitations**:
+
 - **Computational cost**: Multiple iterations increase resource usage
 - **Diminishing returns**: Later iterations may provide minimal improvement
 - **Termination complexity**: Defining "good enough" can be challenging
-
 
 ## 🔧 Function Calling: The Foundation of Tool Usage
 
@@ -548,6 +561,7 @@ Ready for production ✓
 #### Prerequisites
 
 1. **LLM that supports function calling**
+
    - Azure OpenAI (GPT-4, GPT-3.5-turbo with function calling)
    - Anthropic Claude (tool use)
    - Google Gemini (function calling)
@@ -566,8 +580,8 @@ import os
 
 # Initialize Azure OpenAI client
 client = AzureOpenAI(
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"), 
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),  
+    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
     api_version="2024-05-01-preview"
 )
 ```
@@ -646,10 +660,11 @@ print(response_message)
 ```
 
 **Output**:
+
 ```python
 ChatCompletionMessage(
-    content=None, 
-    role='assistant', 
+    content=None,
+    role='assistant',
     tool_calls=[
         ChatCompletionMessageToolCall(
             id='call_abc123',
@@ -681,7 +696,7 @@ TIMEZONE_DATA = {
 def get_current_time(location: str) -> str:
     """Get the current time for a given location"""
     location_lower = location.lower()
-    
+
     # Find matching timezone
     for key, timezone in TIMEZONE_DATA.items():
         if key in location_lower:
@@ -690,10 +705,10 @@ def get_current_time(location: str) -> str:
                 "location": location,
                 "current_time": current_time
             })
-    
+
     # Location not found
     return json.dumps({
-        "location": location, 
+        "location": location,
         "current_time": "unknown",
         "error": "Timezone not found for this location"
     })
@@ -706,22 +721,22 @@ def get_weather(location: str, unit: str = "fahrenheit") -> str:
         "new york": {"temp": 72, "condition": "Sunny"},
         "london": {"temp": 55, "condition": "Rainy"},
     }
-    
+
     location_lower = location.lower()
     if location_lower in weather_data:
         data = weather_data[location_lower]
         temp = data["temp"]
-        
+
         if unit == "celsius":
             temp = round((temp - 32) * 5/9)
-        
+
         return json.dumps({
             "location": location,
             "temperature": temp,
             "unit": unit,
             "condition": data["condition"]
         })
-    
+
     return json.dumps({"error": "Weather data not available"})
 ```
 
@@ -739,13 +754,13 @@ if response_message.tool_calls:
     for tool_call in response_message.tool_calls:
         function_name = tool_call.function.name
         function_args = json.loads(tool_call.function.arguments)
-        
+
         # Get the function from our mapping
         function_to_call = available_functions[function_name]
-        
+
         # Call the function with extracted arguments
         function_response = function_to_call(**function_args)
-        
+
         # Add function response to messages
         messages.append({
             "tool_call_id": tool_call.id,
@@ -765,10 +780,10 @@ print(final_response.choices[0].message.content)
 ```
 
 **Output**:
+
 ```
 The current time in San Francisco is 09:24 AM.
 ```
-
 
 ### Multiple Tool Calls Example
 
@@ -777,12 +792,12 @@ Agents often need to call multiple tools to complete complex tasks:
 ```python
 def handle_complex_query():
     """Example: 'What's the time and weather in San Francisco?'"""
-    
+
     messages = [{
-        "role": "user", 
+        "role": "user",
         "content": "What's the time and weather in San Francisco?"
     }]
-    
+
     # First call - model may request multiple tools
     response = client.chat.completions.create(
         model="gpt-4o",
@@ -790,10 +805,10 @@ def handle_complex_query():
         tools=tools,
         tool_choice="auto"
     )
-    
+
     response_message = response.choices[0].message
     messages.append(response_message)
-    
+
     # Process ALL tool calls
     if response_message.tool_calls:
         for tool_call in response_message.tool_calls:
@@ -801,20 +816,20 @@ def handle_complex_query():
             function_args = json.loads(tool_call.function.arguments)
             function_to_call = available_functions[function_name]
             function_response = function_to_call(**function_args)
-            
+
             messages.append({
                 "tool_call_id": tool_call.id,
                 "role": "tool",
                 "name": function_name,
                 "content": function_response,
             })
-    
+
     # Get final synthesized response
     final_response = client.chat.completions.create(
         model="gpt-4o",
         messages=messages,
     )
-    
+
     return final_response.choices[0].message.content
 
 # Output: "In San Francisco, it's currently 09:24 AM and 68°F with partly cloudy skies."
@@ -845,7 +860,7 @@ import json
 
 class TimeTool:
     """Plugin for time-related operations"""
-    
+
     @kernel_function(
         name="get_current_time",
         description="Get the current time for a given location"
@@ -853,10 +868,10 @@ class TimeTool:
     def get_current_time(self, location: str) -> str:
         """
         Returns current time for specified location.
-        
+
         Args:
             location: City name (e.g., 'San Francisco')
-            
+
         Returns:
             JSON string with location and current time
         """
@@ -865,7 +880,7 @@ class TimeTool:
             "new york": "America/New_York",
             "london": "Europe/London",
         }
-        
+
         location_lower = location.lower()
         if location_lower in timezone_map:
             tz = ZoneInfo(timezone_map[location_lower])
@@ -874,16 +889,16 @@ class TimeTool:
                 "location": location,
                 "time": current_time
             })
-        
+
         return json.dumps({"error": "Location not found"})
-    
+
     @kernel_function(
         name="calculate_time_difference",
         description="Calculate time difference between two locations"
     )
     def calculate_time_difference(
-        self, 
-        location1: str, 
+        self,
+        location1: str,
         location2: str
     ) -> str:
         """Calculate time difference between two cities"""
@@ -1038,25 +1053,25 @@ project_client = AIProjectClient.from_connection_string(
 def fetch_sales_data(query: str) -> str:
     """
     Fetch sales data using SQL query.
-    
+
     Args:
         query: SQL query to execute
-        
+
     Returns:
         JSON string with query results
     """
     import sqlite3
     import json
-    
+
     conn = sqlite3.connect('sales.db')
     cursor = conn.cursor()
-    
+
     # Execute query (with safety checks in production!)
     cursor.execute(query)
     results = cursor.fetchall()
-    
+
     conn.close()
-    
+
     return json.dumps({
         "rows": results,
         "count": len(results)
@@ -1079,7 +1094,7 @@ agent = project_client.agents.create_agent(
     1. Query the sales database using fetch_sales_data
     2. Analyze results using the code interpreter
     3. Generate visualizations and insights
-    
+
     Always validate data before analysis.""",
     toolset=toolset
 )
@@ -1115,6 +1130,7 @@ print(messages.data[0].content[0].text.value)
 ```
 
 **Output**:
+
 ```
 Based on Q3 sales data analysis:
 
@@ -1127,10 +1143,9 @@ Top 5 Products by Revenue:
 
 Total Q3 Revenue from Top 5: $3.47M (72% of total revenue)
 
-Key Insight: Premium Widget Pro shows 45% growth compared to Q2, 
+Key Insight: Premium Widget Pro shows 45% growth compared to Q2,
 suggesting strong market demand for premium features.
 ```
-
 
 ### Model Context Protocol (MCP): Standardized Tool Integration
 
@@ -1259,7 +1274,7 @@ Enterprise systems implement role-based tool access:
 ```python
 class ToolAccessControl:
     """Manage tool permissions by agent role"""
-    
+
     ROLE_PERMISSIONS = {
         "junior_analyst": [
             "read_sales_data",
@@ -1280,16 +1295,16 @@ class ToolAccessControl:
             "approve_changes"
         ]
     }
-    
+
     @staticmethod
     def filter_tools(agent_role: str, all_tools: list) -> list:
         """Return only tools agent is permitted to use"""
         permitted_tool_names = ToolAccessControl.ROLE_PERMISSIONS.get(
             agent_role, []
         )
-        
+
         return [
-            tool for tool in all_tools 
+            tool for tool in all_tools
             if tool.name in permitted_tool_names
         ]
 
@@ -1315,11 +1330,11 @@ from typing import List, Dict
 
 async def execute_tools_parallel(tool_calls: List[Dict]) -> List[str]:
     """Execute multiple independent tool calls concurrently"""
-    
+
     async def execute_single_tool(tool_call):
         function_name = tool_call["function"]
         args = tool_call["arguments"]
-        
+
         # Simulate tool execution
         if function_name == "web_search":
             return await web_search_async(**args)
@@ -1327,12 +1342,12 @@ async def execute_tools_parallel(tool_calls: List[Dict]) -> List[str]:
             return await database_query_async(**args)
         elif function_name == "api_call":
             return await api_call_async(**args)
-    
+
     # Execute all tools concurrently
     results = await asyncio.gather(*[
         execute_single_tool(call) for call in tool_calls
     ])
-    
+
     return results
 
 # Example usage
@@ -1362,41 +1377,41 @@ from typing import List
 
 class SecureDatabaseTool:
     """Database tool with security controls"""
-    
+
     ALLOWED_TABLES = ["sales", "products", "customers"]
     FORBIDDEN_KEYWORDS = ["DROP", "DELETE", "INSERT", "UPDATE", "ALTER"]
-    
+
     def __init__(self, db_path: str):
         # Open in read-only mode
         self.conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
         self.cursor = self.conn.cursor()
-    
+
     def validate_query(self, query: str) -> bool:
         """Validate SQL query for security"""
         query_upper = query.upper()
-        
+
         # Check for forbidden operations
         for keyword in self.FORBIDDEN_KEYWORDS:
             if keyword in query_upper:
                 raise ValueError(f"Forbidden operation: {keyword}")
-        
+
         # Ensure only allowed tables
         for table in self.get_referenced_tables(query):
             if table not in self.ALLOWED_TABLES:
                 raise ValueError(f"Access denied to table: {table}")
-        
+
         return True
-    
+
     def execute_query(self, query: str) -> List[tuple]:
         """Execute validated query"""
         self.validate_query(query)
-        
+
         try:
             self.cursor.execute(query)
             return self.cursor.fetchall()
         except sqlite3.Error as e:
             raise ValueError(f"Query execution failed: {e}")
-    
+
     def get_referenced_tables(self, query: str) -> List[str]:
         """Extract table names from SQL query"""
         # Implementation to parse SQL and extract table names
@@ -1412,54 +1427,54 @@ from typing import Dict, Optional
 
 class SecureAPITool:
     """API tool with authentication and rate limiting"""
-    
+
     def __init__(self, api_key: str, rate_limit: int = 100):
         self.api_key = api_key
         self.rate_limit = rate_limit
         self.request_count = 0
         self.window_start = time.time()
-    
+
     def check_rate_limit(self) -> bool:
         """Enforce rate limiting"""
         current_time = time.time()
-        
+
         # Reset window if 60 seconds passed
         if current_time - self.window_start > 60:
             self.request_count = 0
             self.window_start = current_time
-        
+
         if self.request_count >= self.rate_limit:
             raise Exception("Rate limit exceeded. Please try again later.")
-        
+
         self.request_count += 1
         return True
-    
+
     def call_api(
-        self, 
-        endpoint: str, 
-        params: Dict, 
+        self,
+        endpoint: str,
+        params: Dict,
         user_id: Optional[str] = None
     ) -> Dict:
         """Make authenticated API call with logging"""
         self.check_rate_limit()
-        
+
         # Add authentication
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "User-Agent": "AI-Agent/1.0"
         }
-        
+
         # Log request for audit trail
         self.log_request(user_id, endpoint, params)
-        
+
         # Make request (pseudo-code)
         response = requests.get(endpoint, params=params, headers=headers)
-        
+
         # Log response
         self.log_response(user_id, endpoint, response.status_code)
-        
+
         return response.json()
-    
+
     def log_request(self, user_id: str, endpoint: str, params: Dict):
         """Audit trail for compliance"""
         log_entry = {
@@ -1470,7 +1485,7 @@ class SecureAPITool:
         }
         # Write to audit log
         pass
-    
+
     def log_response(self, user_id: str, endpoint: str, status: int):
         """Log API response for monitoring"""
         pass
@@ -1484,25 +1499,25 @@ import re
 
 class ToolInputValidator:
     """Validate and sanitize tool inputs"""
-    
+
     @staticmethod
     def validate_string(value: str, max_length: int = 1000) -> str:
         """Validate and sanitize string inputs"""
         if not isinstance(value, str):
             raise ValueError("Input must be a string")
-        
+
         if len(value) > max_length:
             raise ValueError(f"Input exceeds max length of {max_length}")
-        
+
         # Remove potentially dangerous characters
         sanitized = re.sub(r'[<>\"\'%;()&+]', '', value)
-        
+
         return sanitized
-    
+
     @staticmethod
     def validate_number(
-        value: Any, 
-        min_val: float = None, 
+        value: Any,
+        min_val: float = None,
         max_val: float = None
     ) -> float:
         """Validate numeric inputs"""
@@ -1510,18 +1525,18 @@ class ToolInputValidator:
             num = float(value)
         except (TypeError, ValueError):
             raise ValueError("Input must be a number")
-        
+
         if min_val is not None and num < min_val:
             raise ValueError(f"Value must be >= {min_val}")
-        
+
         if max_val is not None and num > max_val:
             raise ValueError(f"Value must be <= {max_val}")
-        
+
         return num
-    
+
     @staticmethod
     def validate_tool_input(
-        tool_name: str, 
+        tool_name: str,
         parameters: Dict
     ) -> Dict:
         """Validate all parameters for a tool"""
@@ -1537,19 +1552,19 @@ class ToolInputValidator:
                 "query": {"type": "string", "max_length": 500}
             }
         }
-        
+
         if tool_name not in validation_rules:
             raise ValueError(f"Unknown tool: {tool_name}")
-        
+
         rules = validation_rules[tool_name]
         validated_params = {}
-        
+
         for param_name, param_value in parameters.items():
             if param_name not in rules:
                 continue  # Skip unknown parameters
-            
+
             rule = rules[param_name]
-            
+
             if rule["type"] == "string":
                 validated_params[param_name] = ToolInputValidator.validate_string(
                     param_value,
@@ -1561,10 +1576,9 @@ class ToolInputValidator:
                     min_val=rule.get("min"),
                     max_val=rule.get("max")
                 )
-        
+
         return validated_params
 ```
-
 
 ### Monitoring and Observability
 
@@ -1587,10 +1601,10 @@ class ToolMetrics:
 
 class ToolMonitor:
     """Monitor and track tool usage"""
-    
+
     def __init__(self):
         self.metrics = {}
-    
+
     def record_execution(
         self,
         tool_name: str,
@@ -1601,28 +1615,28 @@ class ToolMonitor:
         """Record tool execution metrics"""
         if tool_name not in self.metrics:
             self.metrics[tool_name] = ToolMetrics(tool_name=tool_name)
-        
+
         metrics = self.metrics[tool_name]
-        
+
         if success:
             metrics.success_count += 1
         else:
             metrics.failure_count += 1
             metrics.last_error = error
-        
+
         metrics.total_latency += latency
         total_calls = metrics.success_count + metrics.failure_count
         metrics.average_latency = metrics.total_latency / total_calls
-    
+
     def get_tool_health(self, tool_name: str) -> Dict:
         """Get health metrics for a tool"""
         if tool_name not in self.metrics:
             return {"status": "unknown"}
-        
+
         metrics = self.metrics[tool_name]
         total_calls = metrics.success_count + metrics.failure_count
         success_rate = metrics.success_count / total_calls if total_calls > 0 else 0
-        
+
         # Determine health status
         if success_rate >= 0.95 and metrics.average_latency < 1.0:
             status = "healthy"
@@ -1630,7 +1644,7 @@ class ToolMonitor:
             status = "degraded"
         else:
             status = "unhealthy"
-        
+
         return {
             "status": status,
             "success_rate": success_rate,
@@ -1647,7 +1661,7 @@ def execute_tool_with_monitoring(tool_name: str, **kwargs):
     start_time = time.time()
     success = False
     error_msg = None
-    
+
     try:
         result = execute_tool(tool_name, **kwargs)
         success = True
@@ -1679,12 +1693,12 @@ from crewai import Agent
 tools = [
     # Knowledge base search
     search_knowledge_base,
-    
+
     # CRM integration
     get_customer_info,
     get_order_history,
     update_ticket_status,
-    
+
     # Actions
     process_refund,
     reschedule_delivery,
@@ -1709,6 +1723,7 @@ result = support_agent.execute(
 ```
 
 **Tool Execution Flow**:
+
 1. `get_customer_info(customer_id=12345)` → Verify customer
 2. `get_order_history(customer_id=12345)` → Find order #67890
 3. `search_knowledge_base(query="refund policy")` → Check eligibility
@@ -1743,6 +1758,7 @@ result = analyst_agent.execute(task)
 ```
 
 **Tool Orchestration**:
+
 ```
 ReAct Pattern Implementation:
 
@@ -1786,7 +1802,7 @@ writer = Agent(
     goal="Create engaging, well-structured content"
 )
 
-# Editor Agent  
+# Editor Agent
 editor = Agent(
     role="Editor",
     tools=[plagiarism_checker_tool, citation_formatter_tool, quality_analyzer_tool],
@@ -1823,15 +1839,15 @@ final_article = crew.kickoff()
 
 ### Choosing the Right Tool Usage Pattern
 
-| Use Case | Recommended Pattern | Reason |
-|----------|-------------------|---------|
-| **Research & Exploration** | ReAct | Dynamic information gathering with adaptive reasoning |
-| **Complex Workflows** | Planning | Clear dependencies and structured execution |
-| **Quality-Critical Tasks** | Reflection | Iterative improvement with validation |
-| **Real-time Information** | ReAct | Immediate access to current data |
-| **Multi-step Analysis** | Planning + ReAct | Structured approach with flexibility |
-| **Code Generation** | Reflection + Tools | Generate, test, refine cycle |
-| **Enterprise Integration** | Framework-managed | Built-in security and governance |
+| Use Case                   | Recommended Pattern | Reason                                                |
+| -------------------------- | ------------------- | ----------------------------------------------------- |
+| **Research & Exploration** | ReAct               | Dynamic information gathering with adaptive reasoning |
+| **Complex Workflows**      | Planning            | Clear dependencies and structured execution           |
+| **Quality-Critical Tasks** | Reflection          | Iterative improvement with validation                 |
+| **Real-time Information**  | ReAct               | Immediate access to current data                      |
+| **Multi-step Analysis**    | Planning + ReAct    | Structured approach with flexibility                  |
+| **Code Generation**        | Reflection + Tools  | Generate, test, refine cycle                          |
+| **Enterprise Integration** | Framework-managed   | Built-in security and governance                      |
 
 ### Decision Matrix
 
@@ -1855,6 +1871,7 @@ Consider These Factors:
 ### 1. Tool Design Principles
 
 **✅ DO:**
+
 - Keep tools focused on single responsibilities
 - Provide clear, detailed descriptions
 - Include comprehensive error handling
@@ -1863,6 +1880,7 @@ Consider These Factors:
 - Log all tool executions for debugging
 
 **❌ DON'T:**
+
 - Create overly complex multi-purpose tools
 - Use vague or ambiguous descriptions
 - Return unpredictable output formats
@@ -1937,7 +1955,6 @@ def test_tool_performance():
     assert latency < 1.0  # Must respond within 1 second
 ```
 
-
 ## 🎯 Conceptual Mastery Checkpoint
 
 Before moving to practical implementation, verify your understanding:
@@ -1993,11 +2010,13 @@ Tool usage transforms LLMs from text generators into **autonomous action-taking 
 ### Three Core Patterns
 
 1. **ReAct (Reasoning + Acting)**: Interleaved thinking and tool usage in iterative loops
+
    - Best for: Exploratory tasks, research, dynamic problem-solving
    - Strength: Adaptive, transparent, self-correcting
    - Limitation: Higher cost, slower execution
 
 2. **Planning-Based**: Upfront strategy creation followed by structured execution
+
    - Best for: Complex workflows, clear dependencies, enterprise processes
    - Strength: Efficient, predictable, resumable
    - Limitation: Less flexible, struggles with uncertainty
@@ -2010,12 +2029,14 @@ Tool usage transforms LLMs from text generators into **autonomous action-taking 
 ### Implementation Approaches
 
 **From Scratch**: Full control but requires handling all complexity
+
 - Function schema definition
 - Tool selection logic
 - Result processing
 - Error handling
 
 **Framework-Managed**: Simplified development with built-in capabilities
+
 - Semantic Kernel: Plugin architecture, automatic serialization
 - Azure AI Agent Service: Managed execution, enterprise tools
 - Other frameworks: LangGraph, CrewAI, AutoGen
@@ -2023,6 +2044,7 @@ Tool usage transforms LLMs from text generators into **autonomous action-taking 
 ### Enterprise Considerations
 
 Production tool usage requires:
+
 - **Security**: Input validation, read-only access, audit trails
 - **Performance**: Parallel execution, caching, streaming
 - **Reliability**: Retry logic, circuit breakers, monitoring
@@ -2041,16 +2063,19 @@ Production tool usage requires:
 ### Previous Lessons
 
 **Lesson 1: Introduction to AI Agents**
+
 - Foundational concepts of agent architecture
 - Tool usage as environmental interaction mechanism
 - Actuators as the theoretical basis for tools
 
 **Lesson 2: Understanding Agentic Frameworks**
+
 - Framework capabilities for tool integration
 - Comparison of tool support across platforms
 - Selection criteria for framework choice
 
 **Lesson 3: Agentic Design Patterns**
+
 - Tool usage as core design pattern
 - Integration with other patterns (Planning, Memory, Multi-Agent)
 - Orchestration strategies for complex systems
@@ -2060,16 +2085,19 @@ Production tool usage requires:
 This lesson provides the foundation for:
 
 **Lesson 5: Agentic RAG (Retrieval-Augmented Generation)**
+
 - Specialized tool usage for knowledge retrieval
 - Combining search tools with reasoning
 - Document-based tool integration
 
 **Lesson 6: Building Trustworthy Agents**
+
 - Security implications of tool usage
 - Validation and safety mechanisms
 - Audit trails and compliance
 
 **Lesson 7: Planning and Design**
+
 - Designing tool ecosystems for specific domains
 - Tool selection strategies
 - Architecture patterns for tool-heavy systems
@@ -2077,18 +2105,21 @@ This lesson provides the foundation for:
 ### Practical Next Steps
 
 **Immediate Actions**:
+
 1. Implement basic function calling with your LLM of choice
 2. Create 2-3 simple tools (calculator, web search, database query)
 3. Test ReAct pattern with your tools
 4. Experiment with Planning pattern for structured tasks
 
 **Intermediate Goals**:
+
 1. Build multi-tool agent for specific use case
 2. Implement security and validation layers
 3. Add monitoring and observability
 4. Deploy to development environment
 
 **Advanced Challenges**:
+
 1. Design multi-agent system with distributed tools
 2. Implement MCP-compliant tool server
 3. Create production-grade tool ecosystem
@@ -2118,11 +2149,13 @@ This lesson provides the foundation for:
 ### Community & Support
 
 **Get Help**:
+
 - [Azure AI Foundry Discord](https://aka.ms/ai-agents/discord) - Office hours and community support
 - [GitHub Discussions](https://github.com/microsoft/semantic-kernel/discussions) - Semantic Kernel community
 - [Stack Overflow](https://stackoverflow.com/questions/tagged/azure-openai) - Technical Q&A
 
 **Share Your Work**:
+
 - Contribute tools to open-source frameworks
 - Share case studies and lessons learned
 - Help others in community forums
@@ -2140,9 +2173,8 @@ This lesson provides the foundation for:
 
 **Congratulations!** You now have a comprehensive understanding of tool usage in agentic AI. You're ready to build powerful agents that can interact with databases, APIs, and external services to accomplish real-world tasks.
 
-**Your journey continues with [Lesson 5: Agentic RAG](../../05-agentic-rag/README.md), where you'll learn how to combine tool usage with advanced retrieval strategies.**
+**Your journey continues with [Lesson 5: Agentic RAG](../lesson-5-agentic-rag/README.md), where you'll learn how to combine tool usage with advanced retrieval strategies.**
 
 ---
 
-*This lesson is part of the [Agent Fundamentals series](../README.md). For practical implementations and code examples, visit the [code_samples](../code_samples/) directory.*
-
+\_This lesson is part of the [Agent Fundamentals series](../README.md).
