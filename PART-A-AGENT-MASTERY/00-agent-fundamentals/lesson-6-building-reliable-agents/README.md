@@ -83,7 +83,7 @@ Can you scale to 10x current load?      →  ❌ Not yet
 ### Your Learning Path
 
 - 🟢 **First Time?** Start with Core Principles
-- 🟡 **Ready for Implementation?** Jump to Architecture Patterns
+- 🟡 **Ready for Implementation?** Jump to Architecture Patterns or LangGraph Examples
 - 🔴 **Deploying to Production?** Focus on Monitoring & Security
 
 ---
@@ -3378,6 +3378,973 @@ class ReliableLLMAgent:
             "verified": True
         }
 ```
+
+## 🔧 Implementing Reliable Agents with LangGraph
+
+LangGraph provides powerful primitives for building reliable, production-ready agents. This section shows how to implement the reliability patterns using LangGraph's state management, error handling, and control flow features.
+
+### Basic Reliable LangGraph Agent Architecture
+
+```python
+from langgraph.graph import StateGraph, END
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from typing import TypedDict, Annotated, Sequence
+import operator
+from datetime import datetime
+import logging
+import uuid
+
+# Define agent state with reliability fields
+class ReliableAgentState(TypedDict):
+    """State for reliable agent with error tracking"""
+    messages: Annotated[Sequence[BaseMessage], operator.add]
+    retry_count: int
+    errors: list[dict]
+    circuit_breaker_state: str  # "closed", "open", "half_open"
+    last_error_time: str
+    request_id: str
+    user_id: str
+    execution_trace: list[dict]
+
+# Initialize logging
+logger = logging.getLogger("reliable_langgraph_agent")
+
+def create_reliable_agent() -> StateGraph:
+    """Create a LangGraph agent with reliability features"""
+
+    workflow = StateGraph(ReliableAgentState)
+
+    # Add nodes for each step
+    workflow.add_node("validate_input", validate_input_node)
+    workflow.add_node("check_circuit_breaker", check_circuit_breaker_node)
+    workflow.add_node("reason", reasoning_node)
+    workflow.add_node("execute_tools", tool_execution_node)
+    workflow.add_node("validate_output", output_validation_node)
+    workflow.add_node("handle_error", error_handling_node)
+    workflow.add_node("log_trace", logging_node)
+
+    # Define edges with conditional routing
+    workflow.set_entry_point("validate_input")
+
+    workflow.add_conditional_edges(
+        "validate_input",
+        route_after_validation,
+        {
+            "circuit_breaker": "check_circuit_breaker",
+            "error": "handle_error"
+        }
+    )
+
+    workflow.add_conditional_edges(
+        "check_circuit_breaker",
+        route_after_circuit_check,
+        {
+            "proceed": "reason",
+            "blocked": "handle_error",
+            "retry": "reason"
+        }
+    )
+
+    workflow.add_conditional_edges(
+        "reason",
+        route_after_reasoning,
+        {
+            "tools_needed": "execute_tools",
+            "complete": "validate_output",
+            "error": "handle_error"
+        }
+    )
+
+    workflow.add_conditional_edges(
+        "execute_tools",
+        route_after_tools,
+        {
+            "success": "validate_output",
+            "retry": "execute_tools",
+            "error": "handle_error"
+        }
+    )
+
+    workflow.add_conditional_edges(
+        "validate_output",
+        route_after_validation_output,
+        {
+            "success": "log_trace",
+            "error": "handle_error"
+        }
+    )
+
+    workflow.add_conditional_edges(
+        "handle_error",
+        route_after_error,
+        {
+            "retry": "reason",
+            "fallback": "log_trace",
+            "end": END
+        }
+    )
+
+    workflow.add_edge("log_trace", END)
+
+    return workflow.compile()
+
+# Node implementations
+
+def validate_input_node(state: ReliableAgentState) -> ReliableAgentState:
+    """Validate input and check for security issues"""
+    logger.info(f"Validating input for request {state['request_id']}")
+
+    state["execution_trace"].append({
+        "node": "validate_input",
+        "timestamp": datetime.now().isoformat(),
+        "action": "input_validation_started"
+    })
+
+    last_message = state["messages"][-1]
+    content = last_message.content
+
+    # Security checks
+    injection_patterns = [
+        "ignore previous instructions",
+        "disregard all",
+        "'; DROP TABLE"
+    ]
+
+    for pattern in injection_patterns:
+        if pattern.lower() in content.lower():
+            logger.warning(f"Security violation detected: {pattern}")
+            state["errors"].append({
+                "type": "security_violation",
+                "message": f"Potential injection detected: {pattern}",
+                "timestamp": datetime.now().isoformat()
+            })
+            return state
+
+    # Input validation
+    if len(content) > 10000:
+        state["errors"].append({
+            "type": "validation_error",
+            "message": "Input too long",
+            "timestamp": datetime.now().isoformat()
+        })
+
+    state["execution_trace"].append({
+        "node": "validate_input",
+        "timestamp": datetime.now().isoformat(),
+        "action": "validation_completed",
+        "passed": len(state["errors"]) == 0
+    })
+
+    return state
+
+def check_circuit_breaker_node(state: ReliableAgentState) -> ReliableAgentState:
+    """Check circuit breaker state"""
+    logger.info(f"Checking circuit breaker for request {state['request_id']}")
+
+    circuit_state = state.get("circuit_breaker_state", "closed")
+
+    if circuit_state == "open":
+        # Check if enough time has passed to try half-open
+        last_error = datetime.fromisoformat(state.get("last_error_time", datetime.now().isoformat()))
+        if (datetime.now() - last_error).total_seconds() > 60:
+            state["circuit_breaker_state"] = "half_open"
+            logger.info("Circuit breaker moving to half_open state")
+        else:
+            logger.warning("Circuit breaker is OPEN, blocking request")
+            state["errors"].append({
+                "type": "circuit_breaker_open",
+                "message": "Service temporarily unavailable",
+                "timestamp": datetime.now().isoformat()
+            })
+
+    state["execution_trace"].append({
+        "node": "check_circuit_breaker",
+        "timestamp": datetime.now().isoformat(),
+        "circuit_state": state.get("circuit_breaker_state", "closed")
+    })
+
+    return state
+
+def reasoning_node(state: ReliableAgentState) -> ReliableAgentState:
+    """Execute LLM reasoning with error handling"""
+    logger.info(f"Executing reasoning for request {state['request_id']}")
+
+    try:
+        from langchain_openai import ChatOpenAI
+
+        llm = ChatOpenAI(
+            model="gpt-4-turbo",
+            temperature=0.7,
+            timeout=30,
+            max_retries=2
+        )
+
+        # Get conversation history
+        messages = state["messages"]
+
+        # Add system message for reliability
+        system_msg = """You are a helpful assistant. Always:
+        1. Provide clear, accurate responses
+        2. Cite sources when making factual claims
+        3. Indicate uncertainty when appropriate
+        4. Refuse harmful or unethical requests
+        """
+
+        # Invoke LLM with timeout
+        response = llm.invoke([
+            {"role": "system", "content": system_msg},
+            *[{"role": m.type, "content": m.content} for m in messages]
+        ])
+
+        # Add response to messages
+        state["messages"].append(AIMessage(content=response.content))
+
+        # Reset circuit breaker on success
+        if state.get("circuit_breaker_state") == "half_open":
+            state["circuit_breaker_state"] = "closed"
+            logger.info("Circuit breaker reset to CLOSED")
+
+        state["execution_trace"].append({
+            "node": "reasoning",
+            "timestamp": datetime.now().isoformat(),
+            "success": True,
+            "response_length": len(response.content)
+        })
+
+        return state
+
+    except Exception as e:
+        logger.error(f"Reasoning failed: {str(e)}")
+
+        state["errors"].append({
+            "type": "reasoning_error",
+            "message": str(e),
+            "timestamp": datetime.now().isoformat(),
+            "retry_count": state.get("retry_count", 0)
+        })
+
+        # Update circuit breaker
+        state["circuit_breaker_state"] = "open"
+        state["last_error_time"] = datetime.now().isoformat()
+
+        return state
+
+def tool_execution_node(state: ReliableAgentState) -> ReliableAgentState:
+    """Execute tools with retry and circuit breaker"""
+    logger.info(f"Executing tools for request {state['request_id']}")
+
+    from langchain.tools import Tool
+
+    # Example tools with retry logic
+    tools = [
+        Tool(
+            name="search",
+            description="Search for information",
+            func=lambda query: search_with_retry(query, max_retries=3)
+        ),
+        Tool(
+            name="calculator",
+            description="Perform calculations",
+            func=lambda expr: calculate_with_circuit_breaker(expr)
+        )
+    ]
+
+    try:
+        # Tool execution logic here
+        # This is simplified - in real implementation, you'd parse the LLM response
+        # to determine which tools to call
+
+        state["execution_trace"].append({
+            "node": "execute_tools",
+            "timestamp": datetime.now().isoformat(),
+            "success": True
+        })
+
+        return state
+
+    except Exception as e:
+        logger.error(f"Tool execution failed: {str(e)}")
+
+        state["errors"].append({
+            "type": "tool_execution_error",
+            "message": str(e),
+            "timestamp": datetime.now().isoformat()
+        })
+
+        return state
+
+def output_validation_node(state: ReliableAgentState) -> ReliableAgentState:
+    """Validate output before returning to user"""
+    logger.info(f"Validating output for request {state['request_id']}")
+
+    last_message = state["messages"][-1]
+
+    if isinstance(last_message, AIMessage):
+        content = last_message.content
+
+        # Check for PII
+        import re
+        if re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', content):
+            logger.warning("PII detected in output")
+            state["errors"].append({
+                "type": "pii_detected",
+                "message": "Response contains potential PII",
+                "timestamp": datetime.now().isoformat()
+            })
+
+        # Check for harmful content
+        harmful_keywords = ["hack", "exploit", "attack"]
+        if any(keyword in content.lower() for keyword in harmful_keywords):
+            logger.warning("Potentially harmful content detected")
+            state["errors"].append({
+                "type": "harmful_content",
+                "message": "Response may contain harmful content",
+                "timestamp": datetime.now().isoformat()
+            })
+
+    state["execution_trace"].append({
+        "node": "validate_output",
+        "timestamp": datetime.now().isoformat(),
+        "passed": len(state["errors"]) == 0
+    })
+
+    return state
+
+def error_handling_node(state: ReliableAgentState) -> ReliableAgentState:
+    """Handle errors with appropriate fallback strategies"""
+    logger.info(f"Handling errors for request {state['request_id']}")
+
+    errors = state.get("errors", [])
+    retry_count = state.get("retry_count", 0)
+
+    if not errors:
+        return state
+
+    last_error = errors[-1]
+    error_type = last_error["type"]
+
+    # Increment retry count
+    state["retry_count"] = retry_count + 1
+
+    # Determine if should retry
+    if error_type in ["reasoning_error", "tool_execution_error"] and retry_count < 3:
+        logger.info(f"Retrying request (attempt {retry_count + 1})")
+        # Clear errors for retry
+        state["errors"] = []
+    elif error_type == "security_violation":
+        # Don't retry security violations
+        logger.error("Security violation - blocking request")
+        state["messages"].append(AIMessage(
+            content="I cannot process this request due to security concerns."
+        ))
+    else:
+        # Use fallback response
+        logger.warning("Max retries exceeded, using fallback")
+        state["messages"].append(AIMessage(
+            content="I apologize, but I'm experiencing technical difficulties. Please try again later."
+        ))
+
+    state["execution_trace"].append({
+        "node": "handle_error",
+        "timestamp": datetime.now().isoformat(),
+        "error_type": error_type,
+        "retry_count": state["retry_count"]
+    })
+
+    return state
+
+def logging_node(state: ReliableAgentState) -> ReliableAgentState:
+    """Log execution trace and metrics"""
+    logger.info(f"Logging trace for request {state['request_id']}")
+
+    # Log comprehensive execution trace
+    trace_summary = {
+        "request_id": state["request_id"],
+        "user_id": state["user_id"],
+        "total_errors": len(state.get("errors", [])),
+        "retry_count": state.get("retry_count", 0),
+        "circuit_breaker_final_state": state.get("circuit_breaker_state", "closed"),
+        "execution_steps": len(state.get("execution_trace", [])),
+        "timestamp": datetime.now().isoformat()
+    }
+
+    logger.info(f"Execution trace: {trace_summary}")
+
+    return state
+
+# Routing functions
+
+def route_after_validation(state: ReliableAgentState) -> str:
+    """Route after input validation"""
+    if state.get("errors"):
+        return "error"
+    return "circuit_breaker"
+
+def route_after_circuit_check(state: ReliableAgentState) -> str:
+    """Route after circuit breaker check"""
+    circuit_state = state.get("circuit_breaker_state", "closed")
+
+    if circuit_state == "open":
+        return "blocked"
+    elif circuit_state == "half_open":
+        return "retry"
+    return "proceed"
+
+def route_after_reasoning(state: ReliableAgentState) -> str:
+    """Route after reasoning"""
+    if state.get("errors"):
+        return "error"
+
+    # Check if tools are needed (simplified)
+    last_message = state["messages"][-1]
+    if "search" in last_message.content.lower() or "calculate" in last_message.content.lower():
+        return "tools_needed"
+
+    return "complete"
+
+def route_after_tools(state: ReliableAgentState) -> str:
+    """Route after tool execution"""
+    if state.get("errors"):
+        retry_count = state.get("retry_count", 0)
+        if retry_count < 2:
+            return "retry"
+        return "error"
+    return "success"
+
+def route_after_validation_output(state: ReliableAgentState) -> str:
+    """Route after output validation"""
+    if state.get("errors"):
+        return "error"
+    return "success"
+
+def route_after_error(state: ReliableAgentState) -> str:
+    """Route after error handling"""
+    retry_count = state.get("retry_count", 0)
+    errors = state.get("errors", [])
+
+    if not errors and retry_count < 3:
+        return "retry"
+    elif errors and errors[-1]["type"] == "security_violation":
+        return "end"
+    else:
+        return "fallback"
+
+# Helper functions for tools
+
+def search_with_retry(query: str, max_retries: int = 3) -> str:
+    """Search with exponential backoff retry"""
+    import time
+    import random
+
+    for attempt in range(max_retries):
+        try:
+            # Simulated search (replace with actual implementation)
+            result = f"Search results for: {query}"
+            return result
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise
+
+            delay = min(2 ** attempt + random.random(), 10)
+            logger.warning(f"Search failed, retrying in {delay:.2f}s")
+            time.sleep(delay)
+
+    return "Search unavailable"
+
+def calculate_with_circuit_breaker(expression: str) -> str:
+    """Calculate with circuit breaker protection"""
+    # Simplified - would integrate with CircuitBreaker class
+    try:
+        result = eval(expression)  # ⚠️ Never use eval in production!
+        return str(result)
+    except Exception as e:
+        logger.error(f"Calculation failed: {str(e)}")
+        raise
+
+# Usage example
+def run_reliable_agent(user_query: str, user_id: str):
+    """Run the reliable agent"""
+    agent = create_reliable_agent()
+
+    initial_state = ReliableAgentState(
+        messages=[HumanMessage(content=user_query)],
+        retry_count=0,
+        errors=[],
+        circuit_breaker_state="closed",
+        last_error_time="",
+        request_id=str(uuid.uuid4()),
+        user_id=user_id,
+        execution_trace=[]
+    )
+
+    result = agent.invoke(initial_state)
+
+    return {
+        "response": result["messages"][-1].content if result["messages"] else None,
+        "request_id": result["request_id"],
+        "errors": result["errors"],
+        "execution_trace": result["execution_trace"],
+        "circuit_breaker_state": result["circuit_breaker_state"]
+    }
+```
+
+### LangGraph Agent with Monitoring and Observability
+
+```python
+from langgraph.graph import StateGraph
+from langchain_core.tracers import BaseTracer
+from langchain_core.callbacks import BaseCallbackHandler
+import time
+
+class MetricsCallback(BaseCallbackHandler):
+    """Callback for collecting metrics"""
+
+    def __init__(self):
+        self.metrics = {
+            "llm_calls": 0,
+            "tool_calls": 0,
+            "total_tokens": 0,
+            "errors": 0,
+            "latencies": []
+        }
+        self.start_times = {}
+
+    def on_llm_start(self, serialized, prompts, **kwargs):
+        """Track LLM call start"""
+        self.metrics["llm_calls"] += 1
+        run_id = kwargs.get("run_id")
+        self.start_times[run_id] = time.time()
+
+    def on_llm_end(self, response, **kwargs):
+        """Track LLM call end"""
+        run_id = kwargs.get("run_id")
+        if run_id in self.start_times:
+            latency = time.time() - self.start_times[run_id]
+            self.metrics["latencies"].append(latency)
+            del self.start_times[run_id]
+
+        # Track tokens
+        if hasattr(response, "llm_output"):
+            tokens = response.llm_output.get("token_usage", {})
+            self.metrics["total_tokens"] += tokens.get("total_tokens", 0)
+
+    def on_tool_start(self, serialized, input_str, **kwargs):
+        """Track tool call start"""
+        self.metrics["tool_calls"] += 1
+        run_id = kwargs.get("run_id")
+        self.start_times[run_id] = time.time()
+
+    def on_tool_end(self, output, **kwargs):
+        """Track tool call end"""
+        run_id = kwargs.get("run_id")
+        if run_id in self.start_times:
+            latency = time.time() - self.start_times[run_id]
+            self.metrics["latencies"].append(latency)
+            del self.start_times[run_id]
+
+    def on_llm_error(self, error, **kwargs):
+        """Track LLM errors"""
+        self.metrics["errors"] += 1
+
+    def on_tool_error(self, error, **kwargs):
+        """Track tool errors"""
+        self.metrics["errors"] += 1
+
+    def get_summary(self) -> dict:
+        """Get metrics summary"""
+        latencies = self.metrics["latencies"]
+        return {
+            "llm_calls": self.metrics["llm_calls"],
+            "tool_calls": self.metrics["tool_calls"],
+            "total_tokens": self.metrics["total_tokens"],
+            "errors": self.metrics["errors"],
+            "avg_latency": sum(latencies) / len(latencies) if latencies else 0,
+            "p95_latency": sorted(latencies)[int(len(latencies) * 0.95)] if latencies else 0,
+            "total_requests": self.metrics["llm_calls"] + self.metrics["tool_calls"]
+        }
+
+# Create agent with monitoring
+def create_monitored_agent():
+    """Create agent with comprehensive monitoring"""
+
+    metrics_callback = MetricsCallback()
+
+    workflow = StateGraph(ReliableAgentState)
+
+    # Add nodes (same as before)
+    workflow.add_node("validate_input", validate_input_node)
+    workflow.add_node("reason", reasoning_node)
+    workflow.add_node("execute_tools", tool_execution_node)
+
+    # ... add edges ...
+
+    compiled_graph = workflow.compile()
+
+    # Return graph with callbacks
+    return compiled_graph, metrics_callback
+
+# Usage with monitoring
+def run_with_monitoring(user_query: str):
+    """Run agent with monitoring"""
+    agent, metrics = create_monitored_agent()
+
+    initial_state = ReliableAgentState(
+        messages=[HumanMessage(content=user_query)],
+        retry_count=0,
+        errors=[],
+        circuit_breaker_state="closed",
+        last_error_time="",
+        request_id=str(uuid.uuid4()),
+        user_id="user123",
+        execution_trace=[]
+    )
+
+    result = agent.invoke(
+        initial_state,
+        config={"callbacks": [metrics]}
+    )
+
+    # Get metrics summary
+    metrics_summary = metrics.get_summary()
+
+    return {
+        "response": result["messages"][-1].content,
+        "metrics": metrics_summary,
+        "execution_trace": result["execution_trace"]
+    }
+```
+
+### LangGraph Agent with Human-in-the-Loop
+
+```python
+from langgraph.graph import StateGraph
+from langgraph.checkpoint.memory import MemorySaver
+from typing import Literal
+
+class HITLAgentState(TypedDict):
+    """State for HITL agent"""
+    messages: Annotated[Sequence[BaseMessage], operator.add]
+    pending_approval: bool
+    approval_request_id: str
+    risk_assessment: dict
+    approved_actions: list[str]
+    user_id: str
+
+def create_hitl_agent():
+    """Create agent with human-in-the-loop for high-risk actions"""
+
+    workflow = StateGraph(HITLAgentState)
+
+    # Add nodes
+    workflow.add_node("assess_risk", assess_risk_node)
+    workflow.add_node("request_approval", request_approval_node)
+    workflow.add_node("wait_for_approval", wait_for_approval_node)
+    workflow.add_node("execute_action", execute_action_node)
+    workflow.add_node("execute_safe_action", execute_safe_action_node)
+
+    # Define flow
+    workflow.set_entry_point("assess_risk")
+
+    workflow.add_conditional_edges(
+        "assess_risk",
+        route_by_risk,
+        {
+            "high_risk": "request_approval",
+            "low_risk": "execute_safe_action"
+        }
+    )
+
+    workflow.add_edge("request_approval", "wait_for_approval")
+
+    workflow.add_conditional_edges(
+        "wait_for_approval",
+        route_after_approval,
+        {
+            "approved": "execute_action",
+            "rejected": END,
+            "waiting": "wait_for_approval"
+        }
+    )
+
+    workflow.add_edge("execute_action", END)
+    workflow.add_edge("execute_safe_action", END)
+
+    # Use checkpoint saver to persist state during approval wait
+    memory = MemorySaver()
+    return workflow.compile(checkpointer=memory)
+
+def assess_risk_node(state: HITLAgentState) -> HITLAgentState:
+    """Assess risk level of requested action"""
+    last_message = state["messages"][-1].content
+
+    risk_score = 0.0
+    risk_factors = []
+
+    # Financial risk
+    if any(word in last_message.lower() for word in ["transfer", "payment", "withdraw"]):
+        risk_score += 0.4
+        risk_factors.append("Financial transaction")
+
+    # Data modification
+    if any(word in last_message.lower() for word in ["delete", "remove", "drop"]):
+        risk_score += 0.3
+        risk_factors.append("Data modification")
+
+    # External communication
+    if any(word in last_message.lower() for word in ["email", "send", "notify"]):
+        risk_score += 0.2
+        risk_factors.append("External communication")
+
+    state["risk_assessment"] = {
+        "score": risk_score,
+        "level": "high" if risk_score >= 0.5 else "low",
+        "factors": risk_factors
+    }
+
+    logger.info(f"Risk assessment: {state['risk_assessment']}")
+
+    return state
+
+def request_approval_node(state: HITLAgentState) -> HITLAgentState:
+    """Request human approval for high-risk action"""
+    import uuid
+
+    approval_id = str(uuid.uuid4())
+    state["approval_request_id"] = approval_id
+    state["pending_approval"] = True
+
+    # In production, this would send notification to approver
+    logger.info(f"Approval requested: {approval_id}")
+    logger.info(f"Risk factors: {state['risk_assessment']['factors']}")
+
+    return state
+
+def wait_for_approval_node(state: HITLAgentState) -> HITLAgentState:
+    """Wait for human approval (interrupt point)"""
+    # This node will be interrupted and wait for human input
+    logger.info(f"Waiting for approval: {state['approval_request_id']}")
+    return state
+
+def route_by_risk(state: HITLAgentState) -> str:
+    """Route based on risk assessment"""
+    risk_level = state["risk_assessment"]["level"]
+    return "high_risk" if risk_level == "high" else "low_risk"
+
+def route_after_approval(state: HITLAgentState) -> str:
+    """Route based on approval status"""
+    # Check if approval was granted (would come from external system)
+    if state.get("pending_approval"):
+        return "waiting"
+    elif state["approval_request_id"] in state.get("approved_actions", []):
+        return "approved"
+    else:
+        return "rejected"
+
+def execute_action_node(state: HITLAgentState) -> HITLAgentState:
+    """Execute approved high-risk action"""
+    logger.info(f"Executing approved action: {state['approval_request_id']}")
+
+    # Execute the action here
+    state["messages"].append(AIMessage(
+        content="Action completed successfully after approval."
+    ))
+
+    return state
+
+def execute_safe_action_node(state: HITLAgentState) -> HITLAgentState:
+    """Execute low-risk action directly"""
+    logger.info("Executing safe action without approval")
+
+    # Execute the action here
+    state["messages"].append(AIMessage(
+        content="Action completed successfully."
+    ))
+
+    return state
+
+# Usage example with approval workflow
+def run_hitl_agent_with_approval(user_query: str, user_id: str):
+    """Run HITL agent with approval workflow"""
+    agent = create_hitl_agent()
+    thread_id = str(uuid.uuid4())
+
+    config = {"configurable": {"thread_id": thread_id}}
+
+    initial_state = HITLAgentState(
+        messages=[HumanMessage(content=user_query)],
+        pending_approval=False,
+        approval_request_id="",
+        risk_assessment={},
+        approved_actions=[],
+        user_id=user_id
+    )
+
+    # Run until approval needed
+    result = agent.invoke(initial_state, config=config)
+
+    if result.get("pending_approval"):
+        print(f"⏸️  Approval required for: {result['approval_request_id']}")
+        print(f"Risk factors: {result['risk_assessment']['factors']}")
+
+        # Simulate approval (in production, this would be from approver)
+        approval = input("Approve? (y/n): ")
+
+        if approval.lower() == 'y':
+            # Continue execution with approval
+            result["approved_actions"].append(result["approval_request_id"])
+            result["pending_approval"] = False
+
+            # Resume execution
+            final_result = agent.invoke(result, config=config)
+            return final_result
+        else:
+            print("❌ Action rejected")
+            return result
+
+    return result
+```
+
+### LangGraph Agent with Cost Management
+
+```python
+class CostTrackingState(TypedDict):
+    """State with cost tracking"""
+    messages: Annotated[Sequence[BaseMessage], operator.add]
+    total_cost: float
+    token_usage: dict
+    model_used: str
+    daily_budget: float
+    request_id: str
+
+def create_cost_optimized_agent():
+    """Create agent with cost optimization"""
+
+    workflow = StateGraph(CostTrackingState)
+
+    workflow.add_node("check_budget", check_budget_node)
+    workflow.add_node("select_model", model_selection_node)
+    workflow.add_node("reason_with_tracking", reason_with_cost_tracking)
+    workflow.add_node("update_costs", cost_update_node)
+
+    workflow.set_entry_point("check_budget")
+
+    workflow.add_conditional_edges(
+        "check_budget",
+        route_by_budget,
+        {
+            "proceed": "select_model",
+            "budget_exceeded": END
+        }
+    )
+
+    workflow.add_edge("select_model", "reason_with_tracking")
+    workflow.add_edge("reason_with_tracking", "update_costs")
+    workflow.add_edge("update_costs", END)
+
+    return workflow.compile()
+
+def check_budget_node(state: CostTrackingState) -> CostTrackingState:
+    """Check if within budget"""
+    daily_budget = state.get("daily_budget", 100.0)
+    current_cost = state.get("total_cost", 0.0)
+
+    logger.info(f"Budget check: ${current_cost:.4f} / ${daily_budget:.2f}")
+
+    return state
+
+def model_selection_node(state: CostTrackingState) -> CostTrackingState:
+    """Select model based on budget and complexity"""
+    query = state["messages"][-1].content
+    remaining_budget = state["daily_budget"] - state.get("total_cost", 0.0)
+
+    # Select model based on remaining budget
+    if remaining_budget < 1.0:
+        model = "gpt-3.5-turbo"  # Cheapest
+    elif len(query) > 500 or "complex" in query.lower():
+        model = "gpt-4-turbo"  # More capable
+    else:
+        model = "gpt-3.5-turbo"  # Cost-effective
+
+    state["model_used"] = model
+    logger.info(f"Selected model: {model} (remaining budget: ${remaining_budget:.2f})")
+
+    return state
+
+def reason_with_cost_tracking(state: CostTrackingState) -> CostTrackingState:
+    """Execute reasoning with cost tracking"""
+    from langchain_openai import ChatOpenAI
+
+    model = state["model_used"]
+    llm = ChatOpenAI(model=model, temperature=0.7)
+
+    # Track token usage
+    with llm.with_config({"callbacks": [TokenCounter()]}) as tracked_llm:
+        response = tracked_llm.invoke(state["messages"])
+
+    state["messages"].append(AIMessage(content=response.content))
+
+    # Extract token usage
+    if hasattr(response, "response_metadata"):
+        token_usage = response.response_metadata.get("token_usage", {})
+        state["token_usage"] = token_usage
+
+    return state
+
+def cost_update_node(state: CostTrackingState) -> CostTrackingState:
+    """Update cost tracking"""
+    # Pricing per 1K tokens
+    pricing = {
+        "gpt-4-turbo": {"input": 0.01, "output": 0.03},
+        "gpt-3.5-turbo": {"input": 0.001, "output": 0.002}
+    }
+
+    model = state["model_used"]
+    token_usage = state.get("token_usage", {})
+
+    input_tokens = token_usage.get("prompt_tokens", 0)
+    output_tokens = token_usage.get("completion_tokens", 0)
+
+    model_pricing = pricing.get(model, pricing["gpt-3.5-turbo"])
+    cost = (
+        (input_tokens / 1000) * model_pricing["input"] +
+        (output_tokens / 1000) * model_pricing["output"]
+    )
+
+    state["total_cost"] = state.get("total_cost", 0.0) + cost
+
+    logger.info(f"Request cost: ${cost:.4f} (Total: ${state['total_cost']:.4f})")
+
+    return state
+
+def route_by_budget(state: CostTrackingState) -> str:
+    """Route based on budget availability"""
+    remaining = state["daily_budget"] - state.get("total_cost", 0.0)
+    return "proceed" if remaining > 0.01 else "budget_exceeded"
+
+class TokenCounter(BaseCallbackHandler):
+    """Callback to count tokens"""
+    def __init__(self):
+        self.token_count = 0
+
+    def on_llm_end(self, response, **kwargs):
+        if hasattr(response, "llm_output"):
+            tokens = response.llm_output.get("token_usage", {})
+            self.token_count += tokens.get("total_tokens", 0)
+```
+
+### Key Benefits of LangGraph for Reliability
+
+**1. State Management**: LangGraph's built-in state management makes it easy to track errors, retries, and circuit breaker states across the agent lifecycle.
+
+**2. Conditional Routing**: Complex error handling and fallback logic can be expressed as conditional edges, making the flow easy to understand and modify.
+
+**3. Checkpointing**: LangGraph's checkpointing enables persistence of state, which is critical for HITL workflows and long-running agent tasks.
+
+**4. Interruptions**: Built-in support for interrupting execution (e.g., waiting for human approval) and resuming later.
+
+**5. Observability**: Easy integration with callbacks and tracers for comprehensive monitoring.
+
+**6. Testing**: The graph structure makes it easy to test individual nodes in isolation and verify the overall flow logic.
 
 ## 📊 Evaluation Metrics for Reliable Agents
 
