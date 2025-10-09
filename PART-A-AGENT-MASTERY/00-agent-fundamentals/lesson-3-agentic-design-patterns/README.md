@@ -2943,7 +2943,3 @@ except Exception as e:
 **Ready to implement?** You now have a comprehensive understanding of agentic design patterns. The next step is to apply these patterns to build real-world agent systems using the frameworks explored in Lesson 2.
 
 **Key Takeaway**: Agentic design patterns are not prescriptive rules but flexible blueprints. Success comes from understanding the patterns deeply and combining them appropriately for your specific use case.
-
----
-
-**Your journey continues with [Lesson 4: Tool Usage in Agentic AI](../lesson-4-tool-usage/README.md), where you'll learn how agents extend their capabilities through external tools, APIs, and function calling to interact with the real world.**

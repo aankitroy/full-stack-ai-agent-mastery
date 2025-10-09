@@ -10,19 +10,19 @@ This fundamentals section is designed as a **progressive learning journey**. Eac
 
 ### **📚 Complete Lesson Sequence**
 
-| Lesson | Topic                                                            | Duration | Complexity | Prerequisites |
-| ------ | ---------------------------------------------------------------- | -------- | ---------- | ------------- |
+| Lesson | Topic                                                                     | Duration | Complexity | Prerequisites |
+| ------ | ------------------------------------------------------------------------- | -------- | ---------- | ------------- |
 | **01** | [What is an Agent?](./lesson-1-introduction/README.md)                    | 30 mins  | ⭐         | None          |
-| **02** | [Explore Agentic Frameworks](./lesson-2-frameworks/README.md) | 45 mins  | ⭐⭐       | Lesson 01     |
-| **03** | [Agent Architectures](./03-agent-architectures.md)               | 60 mins  | ⭐⭐⭐     | Lessons 01-02 |
-| **04** | [Reasoning Patterns](./04-reasoning-patterns.md)                 | 45 mins  | ⭐⭐⭐     | Lessons 01-03 |
-| **05** | [Memory Systems](./05-memory-systems.md)                         | 60 mins  | ⭐⭐⭐⭐   | Lessons 01-04 |
-| **06** | [Tool Integration](./06-tool-integration.md)                     | 45 mins  | ⭐⭐⭐     | Lessons 01-05 |
-| **07** | [Evaluation Methods](./07-evaluation-methods.md)                 | 45 mins  | ⭐⭐⭐⭐   | Lessons 01-06 |
-| **08** | [Agent Safety](./08-agent-safety.md)                             | 60 mins  | ⭐⭐⭐⭐⭐ | Lessons 01-07 |
-| **09** | [Design Principles](./09-design-principles.md)                   | 30 mins  | ⭐⭐⭐     | All previous  |
+| **02** | [Explore Agentic Frameworks](./lesson-2-frameworks/README.md)             | 45 mins  | ⭐⭐       | Lesson 01     |
+| **03** | [Agentic Design Patterns](./lesson-3-agentic-design-patterns/README.md)   | 60 mins  | ⭐⭐⭐     | Lessons 01-02 |
+| **04** | [Tool Usage in Agentic AI](./lesson-4-tool-usage/README.md)               | 45 mins  | ⭐⭐⭐     | Lessons 01-03 |
+| **05** | [Agentic RAG](./lesson-5-agentic-rag/README.md)                           | 60 mins  | ⭐⭐⭐⭐   | Lessons 01-04 |
+| **06** | [Building Reliable Agents](./lesson-6-building-reliable-agents/README.md) | 45 mins  | ⭐⭐⭐⭐   | Lessons 01-05 |
+| **07** | [Evaluation Methods](./07-evaluation-methods.md)                          | 45 mins  | ⭐⭐⭐⭐   | Lessons 01-06 |
+| **08** | [Agent Safety](./08-agent-safety.md)                                      | 60 mins  | ⭐⭐⭐⭐⭐ | Lessons 01-07 |
+| **09** | [Design Principles](./09-design-principles.md)                            | 30 mins  | ⭐⭐⭐     | All previous  |
 
-**Total Time Investment**: ~6 hours of focused study
+**Total Time Investment**: ~6.75 hours of focused study
 **Outcome**: Complete theoretical foundation for agent development
 
 ## 🎯 **What You'll Master**
@@ -75,21 +75,21 @@ This fundamentals section is designed as a **progressive learning journey**. Eac
 
 **Goal**: Understand what agents are and why they matter
 
-1. **[What is an Agent?](./01-what-is-an-agent.md)** - Start here
-2. **[Explore Agentic Frameworks](./02-explore-agentic-frameworks.md)** - Choose your tools
-3. **[Agent Architectures](./03-agent-architectures.md)** - Learn the patterns
+1. **[What is an Agent?](./lesson-1-introduction/README.md)** - Start here
+2. **[Explore Agentic Frameworks](./lesson-2-frameworks/README.md)** - Choose your tools
+3. **[Agentic Design Patterns](./lesson-3-agentic-design-patterns/README.md)** - Learn the patterns
 
 **Outcome**: Clear understanding of agent fundamentals
 
 ### **🧠 Phase 2: Core Concepts (Week 2)**
 
-**Goal**: Master reasoning and memory systems
+**Goal**: Master tool usage and advanced retrieval
 
-4. **[Reasoning Patterns](./04-reasoning-patterns.md)** - How agents think
-5. **[Memory Systems](./05-memory-systems.md)** - How agents remember
-6. **[Tool Integration](./06-tool-integration.md)** - How agents act
+4. **[Tool Usage in Agentic AI](./lesson-4-tool-usage/README.md)** - How agents use tools
+5. **[Agentic RAG](./lesson-5-agentic-rag/README.md)** - Advanced retrieval strategies
+6. **[Building Reliable Agents](./lesson-6-building-reliable-agents/README.md)** - Production readiness
 
-**Outcome**: Deep understanding of agent capabilities
+**Outcome**: Deep understanding of agent capabilities and reliability
 
 ### **⚡ Phase 3: Production Readiness (Week 3)**
 
@@ -222,7 +222,7 @@ cd your-learning-journey/progress-tracking/
 
 ### **🎯 Start Your Journey**
 
-1. **📖 Begin with [What is an Agent?](./01-what-is-an-agent.md)**
+1. **📖 Begin with [What is an Agent?](./lesson-1-introduction/README.md)**
 2. **⏰ Set aside focused study time** (30-60 minutes per lesson)
 3. **📝 Take notes and ask questions** in our community
 4. **🔄 Practice concepts** with the provided exercises
@@ -240,4 +240,4 @@ cd your-learning-journey/progress-tracking/
 
 **Your agent mastery journey begins here. These fundamentals will serve as your north star throughout your entire learning experience.**
 
-_Ready to become an AI agent expert? Start with [What is an Agent?](./01-what-is-an-agent.md) and begin building your foundation today._
+_Ready to become an AI agent expert? Start with [What is an Agent?](./lesson-1-introduction/README.md) and begin building your foundation today._
