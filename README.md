@@ -1,4 +1,4 @@
-# 🚀 Full-Stack AI Agent Mastery
+# 🚀 Full-Stack AI Agent Mastery - In progress
 
 > **The Ultimate Collaborative Learning Resource**: Master 137 different agent patterns while building production-ready full-stack systems
 
